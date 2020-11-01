@@ -1,4 +1,9 @@
 # SpliceSeq_Usage  
+---
+* 总结自 [SpliceSeq](https://bioinformatics.mdanderson.org/public-software/spliceseq/) 官网及自己使用心得；  
+* 其中安装配置主要为官网 [Installation](https://bioinformatics.mdanderson.org/public-software/spliceseq/installation/) 部分能容，运行使用参见 [Data Loading](https://bioinformatics.mdanderson.org/public-software/spliceseq/dataloading/)  
+* 建议预先安装 [Java](https://java.com/zh-CN/)
+---
 ## 1. 下载  
 ### 1.1 SpliceSeq软件包  
 [SpliceSeq.zip](http://projects.insilico.us.com/SpliceSeq_2.3/SpliceSeq.zip)  
