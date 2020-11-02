@@ -87,3 +87,89 @@ Enter password: ******
 在主界面，选择` Sample View `，进而选择需要查看的样本。  
 ![](.SpliceDB_images/9609480b.png)  
 ![](.SpliceDB_images/64b90266.png)  
+## 4 从*MySQL*提取剪接信息  
+### 4.1 运行*MySQL Workbench*  
+提取如下表格：  
+![](.SpliceDB_images/f308b6c6.png)
+### 4.2 过滤表格信息  
+```bash
+# aid = Alternative Splicing ID
+# sid = Sample ID (Sample ID can been found in the sample table of SpliceGraph DB)
+# psi = The PSI of the Splice Event
+# gid = Gene ID
+# gna = gene Name
+# chr = Chromosome of the Gene
+# str = Strand of the Gene
+# eid = Exon ID
+# typ = Type of the Gene
+# novel = Wether the Splice Event is novel found
+# ena = The index of the Exon in it's Gene
+# s/start = The start loci of the Gene or Exon
+# e/end = The end loci of the Gene or Exon
+
+awk -F "," '{print $1 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7}' graph.csv \
+    >gid_gna_chr_str_start_end.tsv
+
+awk -F "," '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' exon.csv \
+    >gid_eid_s_e_ena.tsv
+
+awk -F "," '($5+$6>0){print $1 "\t" $2 "\t" $3}' as_counts.csv \
+    >aid_sid_psi.tsv
+
+awk -F "," '{print $1 "\t" $2}' as_ref_exon.csv \
+    >aid_eid.tsv
+
+awk -F "," '{print $1 "\t" $2 "\t" $3 "\t" $6 "\t" $7}' as_ref.csv \
+    >aid_gid_typ_novel_ena.tsv
+```
+### 4.3 归纳Exon及Splice Event信息
+```
+perl splice.pl \
+    gid_gna_chr_str_start_end.tsv \
+    gid_eid_s_e_ena.tsv \
+    aid_gid_typ_novel_ena.tsv \
+    >Hsa_exon.tsv
+
+awk '$9!="NULL"||$10!="NULL"||$11!="NULL"||$12!="NULL"||$13!="NULL"||$14!="NULL"||$15!="NULL"' Hsa_exon.tsv \
+    >Hsa_alter_splice_exon.tsv
+
+# The '6' means Sample ID
+perl splice_psi.pl 6 \
+    gid_gna_chr_str_start_end.tsv \
+    gid_eid_s_e_ena.tsv \
+    aid_sid_psi.tsv \
+    aid_gid_typ_novel_ena.tsv \
+    >Hsa_HeLa_exon_psi_hg19.tsv
+```
+Then use [LiftOver](https://genome.ucsc.edu/cgi-bin/hgLiftOver) converting the location of exons from ` hg19 ` to ` hg38 `.
+```
+# The 'Hsa_HeLa_exon_psi_hg19.tsv' has converted to 'Hsa_HeLa_exon_psi_hg38.tsv'
+for i in ES AD AA RI ME AT AP; do
+    awk '$10!="NULL"' Hsa_exon_psi_hg38.tsv |
+    awk -va=${i} '$9==a' \
+        >Hsa_HeLa_exon_psi_only${i}.tsv | wc -l;
+done
+# OUTPUT:
+#   25601
+#    2851
+#    3239
+#    2776
+#     855
+#    8297
+#   10147
+
+for i in ES AD AA RI ME AT AP; do
+    perl judge_sites.pl \
+        Hsa_HeLa_1000p_uniq.tsv \
+        Hsa_HeLa_exon_psi_only${i}.tsv |
+    wc -l
+done
+# OUTPUT:
+#      20
+#       2
+#       4
+#       2
+#       1
+#      30
+#      25
+```
